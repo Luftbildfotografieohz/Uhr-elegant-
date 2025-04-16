@@ -1,53 +1,131 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>Uhr</title>
-    <style>
-        body {
-            background-color: #111;
-            color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .time {
-            font-size: 15vw;
-            font-weight: 300;
-        }
-        .date {
-            font-size: 4vw;
-            margin-top: 1vh;
-            font-weight: 200;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Uhr & Wetter – Osterholz-Scharmbeck</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', 'Lato', sans-serif;
+      color: #fff;
+      text-align: center;
+      transition: background 1s ease-in-out;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .time {
+      font-size: 6em;
+      margin: 0.2em 0;
+    }
+    .greeting {
+      font-size: 2em;
+      margin: 0.2em 0;
+    }
+    .date {
+      font-size: 1.5em;
+      margin: 0.2em 0;
+    }
+    .weather {
+      margin-top: 1em;
+    }
+    .forecast {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 1em;
+    }
+    .forecast-day {
+      margin: 0 1em;
+    }
+    .forecast-day img {
+      width: 50px;
+      height: 50px;
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <div class="greeting" id="greeting">Guten Tag</div>
     <div class="time" id="time">--:--</div>
-    <div class="date" id="date">Lade Datum…</div>
+    <div class="date" id="date">--</div>
+    <div class="weather" id="weather">
+      <div id="current-weather">Lade Wetterdaten...</div>
+      <div class="forecast" id="forecast"></div>
+    </div>
+  </div>
 
-    <script>
-        function updateClock() {
-            const now = new Date();
-            const time = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-            const date = now.toLocaleDateString('de-DE', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            });
+  <script>
+    const apiKey = "588e492fc3e89866da25c4c44bed425b";
+    const lat = 53.2265;
+    const lon = 8.7975;
 
-            document.getElementById('time').textContent = time;
-            document.getElementById('date').textContent = date;
-        }
+    function updateTime() {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      document.getElementById('time').textContent = `:`;
 
-        setInterval(updateClock, 1000);
-        updateClock();
-    </script>
+      const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('date').textContent = now.toLocaleDateString('de-DE', dateOptions);
+
+      let greeting = "Guten Tag";
+      if (now.getHours() < 5) greeting = "Gute Nacht";
+      else if (now.getHours() < 10) greeting = "Guten Morgen";
+      else if (now.getHours() < 18) greeting = "Guten Tag";
+      else greeting = "Guten Abend";
+      document.getElementById('greeting').textContent = greeting;
+
+      // Hintergrundfarbe basierend auf Tageszeit
+      let bgColor = "#2c3e50"; // Nacht
+      if (now.getHours() >= 6 && now.getHours() < 12) bgColor = "#3498db"; // Morgen
+      else if (now.getHours() >= 12 && now.getHours() < 18) bgColor = "#1abc9c"; // Tag
+      else if (now.getHours() >= 18 && now.getHours() < 21) bgColor = "#e67e22"; // Abend
+      document.body.style.backgroundColor = bgColor;
+    }
+
+    async function fetchWeather() {
+      try {
+        const response = await fetch(`https://api.openweathermap.org/data/2.5/onecall?lat=&lon=&exclude=minutely,hourly,alerts&units=metric&lang=de&appid=`);
+        const data = await response.json();
+
+        const current = data.current;
+        const currentWeather = `
+          <div>
+            <img src="https://openweathermap.org/img/wn/@2x.png" alt="" />
+            <div>°C, </div>
+          </div>
+        `;
+        document.getElementById('current-weather').innerHTML = currentWeather;
+
+        const forecastContainer = document.getElementById('forecast');
+        forecastContainer.innerHTML = '';
+        data.daily.slice(1, 8).forEach(day => {
+          const date = new Date(day.dt * 1000);
+          const dayName = date.toLocaleDateString('de-DE', { weekday: 'short' });
+          const forecastHTML = `
+            <div class="forecast-day">
+              <div></div>
+              <img src="https://openweathermap.org/img/wn/.png" alt="" />
+              <div>° / °</div>
+            </div>
+          `;
+          forecastContainer.innerHTML += forecastHTML;
+        });
+      } catch (error) {
+        document.getElementById('current-weather').textContent = "Wetterdaten konnten nicht geladen werden.";
+      }
+    }
+
+    updateTime();
+    fetchWeather();
+    setInterval(updateTime, 60000); // Aktualisiere Uhrzeit jede Minute
+    setInterval(fetchWeather, 600000); // Aktualisiere Wetter alle 10 Minuten
+  </script>
 </body>
 </html>
