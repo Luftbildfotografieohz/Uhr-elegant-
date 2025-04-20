@@ -1,0 +1,258 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wetter-Screensaver</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      color: #ffffff;
+      overflow: hidden;
+    }
+
+    body {
+      background: #1f4068;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.35);
+      z-index: 1;
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      padding: 40px 20px 20px;
+      box-sizing: border-box;
+    }
+
+    .top {
+      text-align: center;
+    }
+
+    .date {
+      font-size: 1.8em;
+      margin-bottom: 0.2em;
+    }
+
+    .clock {
+      font-size: 6em;
+      font-weight: 500;
+    }
+
+    .greeting {
+      font-size: 2.2em;
+      margin-top: 0.4em;
+    }
+
+    .current-weather {
+      font-size: 1.3em;
+      margin-top: 0.8em;
+    }
+
+    .hourly {
+  margin-top: 2em;
+      display: flex;
+      gap: 1.5em;
+      overflow-x: auto;
+      padding: 1em 0;
+      font-size: 1em;
+      text-align: center;
+    }
+
+    .hourly div {
+      min-width: 80px;
+    }
+
+    .week-row {
+      display: flex;
+      justify-content: space-around;
+      font-size: 1em;
+      opacity: 0.85;
+      width: 100%;
+      text-align: center;
+      margin-top: auto;
+      padding: 0.5em 0;
+    }
+
+    .day {
+      padding: 5px;
+    }
+
+    .wi {
+      font-size: 1.4em;
+      margin-bottom: 0.2em;
+    }
+
+    .weather-effect {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .weather-effect.sun {
+      background-image: url('https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1920&q=80');
+      background-size: cover;
+      background-position: center;
+      filter: brightness(1.1);
+    }
+
+    .weather-effect.rain {
+      background-image: url('https://images.unsplash.com/photo-1602416014989-f8f06dc0c39b?auto=format&fit=crop&w=1920&q=80');
+      background-size: cover;
+      background-position: center;
+      animation: rainEffect 5s infinite linear;
+    }
+
+    @keyframes rainEffect {
+      0% { background-position-y: 0; }
+      100% { background-position-y: 100px; }
+    }
+
+    .weather-effect.cloudy {
+      background-image: url('https://images.unsplash.com/photo-1499346030926-9a72daac6c63?auto=format&fit=crop&w=1920&q=80');
+      background-size: cover;
+      background-position: center;
+    }
+  
+@keyframes shiftScreen {
+  0%   { transform: translate(0px, 0px); }
+  25%  { transform: translate(3px, 2px); }
+  50%  { transform: translate(-2px, 3px); }
+  75%  { transform: translate(2px, -2px); }
+  100% { transform: translate(0px, 0px); }
+}
+
+@keyframes fadeOverlay {
+  0%, 100% { background-color: rgba(0, 0, 0, 0.35); }
+  50%      { background-color: rgba(0, 0, 0, 0.30); }
+}
+
+</style>
+</head>
+<body>
+  <div class="weather-effect" id="weatherEffect"></div>
+  <div class="overlay" style="animation: fadeOverlay 120s infinite;"></div>
+  <div class="container" style="animation: shiftScreen 300s infinite;">
+    <div class="top" style="margin-top: 2em;">
+      <div class="date" id="date">Datum</div>
+      <div class="clock" id="clock">--:--</div>
+      <div class="greeting" id="greeting">Guten Tag</div>
+      <div class="current-weather" id="weatherNow">Lade Wetterdaten...</div>
+    </div>
+
+    <div class="hourly" id="hourlyForecast"></div>
+    <div class="week-row" id="forecastRow"></div>
+  </div>
+
+  <script>
+    function updateDateTimeGreeting() {
+      const now = new Date();
+      const options = { weekday: 'long', day: 'numeric', month: 'long' };
+      document.getElementById('date').textContent = now.toLocaleDateString('de-DE', options);
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      document.getElementById('clock').textContent = `${hours}:${minutes}`;
+      let greeting = "Guten Abend";
+      if (hours < 5) greeting = "Gute Nacht";
+      else if (hours < 10) greeting = "Guten Morgen";
+      else if (hours < 17) greeting = "Guten Tag";
+      document.getElementById('greeting').textContent = greeting;
+    }
+
+    setInterval(updateDateTimeGreeting, 1000);
+    updateDateTimeGreeting();
+
+    function getWeatherIcon(code) {
+      if ([0, 1].includes(code)) return '<i class="wi wi-day-sunny"></i>';
+      if ([2].includes(code)) return '<i class="wi wi-day-cloudy"></i>';
+      if ([3].includes(code)) return '<i class="wi wi-cloudy"></i>';
+      if ([45, 48].includes(code)) return '<i class="wi wi-fog"></i>';
+      if ([51, 53, 55].includes(code)) return '<i class="wi wi-showers"></i>';
+      if ([61, 63, 65, 80, 81, 82].includes(code)) return '<i class="wi wi-rain"></i>';
+      if ([71, 73, 75, 85, 86].includes(code)) return '<i class="wi wi-snow"></i>';
+      if ([95, 96, 99].includes(code)) return '<i class="wi wi-thunderstorm"></i>';
+      return '<i class="wi wi-na"></i>';
+    }
+
+    function setAnimationByWeather(code) {
+      const effect = document.getElementById('weatherEffect');
+      if ([0, 1].includes(code)) {
+        effect.className = "weather-effect sun";
+      } else if ([61, 63, 65, 80, 81, 82].includes(code)) {
+        effect.className = "weather-effect rain";
+      } else {
+        effect.className = "weather-effect cloudy";
+      }
+    }
+
+    async function loadWeather() {
+      try {
+        const lat = 53.2263;
+        const lon = 8.7975;
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weathercode&hourly=temperature_2m,precipitation_probability,precipitation,weathercode&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&timezone=Europe%2FBerlin`);
+        const data = await response.json();
+
+        const current = data.current;
+        document.getElementById('weatherNow').innerHTML = `${getWeatherIcon(current.weathercode)} Aktuell: ${current.temperature_2m}°C | Niederschlag: ${current.precipitation} mm`;
+        setAnimationByWeather(current.weathercode);
+
+        const hourly = data.hourly;
+        let hourlyHtml = '';
+        for (let i = 0; i < 6; i++) {
+          const date = new Date(hourly.time[i]);
+          const hour = date.getHours().toString().padStart(2, '0');
+          const icon = getWeatherIcon(hourly.weathercode[i]);
+          const temp = hourly.temperature_2m[i];
+          const rainProb = hourly.precipitation_probability[i];
+          const rainMM = hourly.precipitation[i].toFixed(1);
+          hourlyHtml += `
+            <div>
+              <div>${hour}h</div>
+              <div>${icon}</div>
+              <div>${temp}°C</div>
+              <div>${rainProb}% | ${rainMM} mm</div>
+            </div>
+          `;
+        }
+        document.getElementById('hourlyForecast').innerHTML = hourlyHtml;
+
+        const daily = data.daily;
+        let forecastRow = '';
+        for (let i = 0; i < daily.time.length; i++) {
+          const date = new Date(daily.time[i]);
+          const dayName = date.toLocaleDateString('de-DE', { weekday: 'short' });
+          forecastRow += `<div class="day">${getWeatherIcon(daily.weathercode[i])}<br>${dayName}<br>${daily.temperature_2m_min[i]}–${daily.temperature_2m_max[i]}°C<br>Regen: ${daily.precipitation_sum[i]} mm</div>`;
+        }
+        document.getElementById('forecastRow').innerHTML = forecastRow;
+
+      } catch (error) {
+        console.error("Fehler beim Laden der Wetterdaten:", error);
+      }
+    }
+
+    loadWeather();
+    setInterval(loadWeather, 15 * 60 * 1000);
+  </script>
+</body>
+</html>
