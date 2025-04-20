@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Screensaver</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500&display=swap');
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      color: #ffffff;
+      background: linear-gradient(120deg, #2b2e4a, #1f4068);
+      overflow: hidden;
+    }
+
+    .container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      animation: float 300s infinite alternate ease-in-out;
+    }
+
+    h1 {
+      font-size: 4em;
+      margin: 0.2em 0;
+    }
+
+    .weather-now, .forecast {
+      margin-top: 1em;
+      font-size: 1.3em;
+      line-height: 1.6em;
+    }
+
+    .forecast {
+      margin-top: 2em;
+      font-size: 1em;
+      opacity: 0.85;
+    }
+
+    @keyframes float {
+      0% { transform: translate(-50%, -50%); }
+      100% { transform: translate(-48%, -52%); }
+    }
+
+    @keyframes backgroundShift {
+      0% { background: linear-gradient(120deg, #2b2e4a, #1f4068); }
+      100% { background: linear-gradient(120deg, #1f4068, #2b2e4a); }
+    }
+
+    body {
+      animation: backgroundShift 300s infinite alternate ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 id="greeting">Guten Tag</h1>
+    <h1 id="clock">--:--</h1>
+    <div class="weather-now" id="weatherNow">Lade Wetterdaten...</div>
+    <div class="forecast" id="forecast">Vorhersage wird geladen...</div>
+  </div>
+
+  <script>
+    // Uhrzeit & Begrüßung
+    function updateClockAndGreeting() {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      document.getElementById('clock').textContent = `${hours}:${minutes}`;
+
+      let greeting = "Guten Abend";
+      if (hours < 5) greeting = "Gute Nacht";
+      else if (hours < 10) greeting = "Guten Morgen";
+      else if (hours < 17) greeting = "Guten Tag";
+
+      document.getElementById('greeting').textContent = greeting;
+    }
+
+    setInterval(updateClockAndGreeting, 1000);
+    updateClockAndGreeting();
+
+    // Wetterdaten von Open-Meteo laden
+    async function loadWeather() {
+      try {
+        const lat = 53.2263;  // Osterholz-Scharmbeck
+        const lon = 8.7975;
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weathercode&hourly=precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe%2FBerlin`);
+        const data = await response.json();
+
+        // Aktuelles Wetter
+        const currentTemp = data.current.temperature_2m;
+        const currentPrecip = data.current.precipitation;
+        const weatherNowText = `Aktuell: ${currentTemp}°C | Niederschlag: ${currentPrecip} mm`;
+
+        // Nächste Stunden – Regenwahrscheinlichkeit
+        const hourlyTimes = data.hourly.time.slice(0, 6); // nächste 6 Stunden
+        const hourlyRain = data.hourly.precipitation_probability.slice(0, 6);
+        let rainForecast = '<br>Nächste Stunden (Regenwahrscheinlichkeit):<br>';
+        for (let i = 0; i < hourlyTimes.length; i++) {
+          const hour = new Date(hourlyTimes[i]).getHours().toString().padStart(2, '0');
+          rainForecast += `${hour} Uhr: ${hourlyRain[i]}% &nbsp;&nbsp;`;
+        }
+
+        document.getElementById('weatherNow').innerHTML = weatherNowText + rainForecast;
+
+        // 7-Tage-Vorhersage
+        const dailyMin = data.daily.temperature_2m_min;
+        const dailyMax = data.daily.temperature_2m_max;
+        const dailyPrecip = data.daily.precipitation_sum;
+        const dailyDates = data.daily.time;
+        let forecastHtml = '';
+
+        for (let i = 0; i < dailyDates.length; i++) {
+          const date = new Date(dailyDates[i]);
+          const dayName = date.toLocaleDateString('de-DE', { weekday: 'short' });
+          forecastHtml += `${dayName}: ${dailyMin[i]}–${dailyMax[i]}°C, Regen: ${dailyPrecip[i]} mm<br>`;
+        }
+
+        document.getElementById('forecast').innerHTML = forecastHtml;
+
+      } catch (error) {
+        document.getElementById('weatherNow').textContent = 'Fehler beim Laden der Wetterdaten';
+        console.error(error);
+      }
+    }
+
+    loadWeather();
+    setInterval(loadWeather, 15 * 60 * 1000); // alle 15 Minuten neu laden
+  </script>
+</body>
+</html>
